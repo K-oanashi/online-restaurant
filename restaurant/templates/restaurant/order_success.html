@@ -1,0 +1,40 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>შეკვეთა მიღებულია | ცისფერი მთები</title>
+
+    <link href="{% static 'restaurant/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'restaurant/css/style.css' %}" rel="stylesheet">
+</head>
+<body>
+
+<div class="container-fluid bg-dark py-3">
+    <div class="container">
+        <h2 class="text-primary mb-0">ცისფერი მთები</h2>
+    </div>
+</div>
+
+<div class="container py-5 text-center">
+
+    <h1 class="text-success mb-4">
+        თქვენი შეკვეთა წარმატებით გაფორმდა!
+    </h1>
+
+    <h3>შეკვეთის ნომერი: #{{ order.id }}</h3>
+
+    <p class="mt-4">მადლობა, {{ order.customer_name }}!</p>
+
+    <h4>სულ გადასახდელი: {{ order.total_price }} ₾</h4>
+
+    <a href="{% url 'home' %}" class="btn btn-primary mt-4">
+        მთავარ გვერდზე დაბრუნება
+    </a>
+
+</div>
+
+</body>
+</html>

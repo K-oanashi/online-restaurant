@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ka">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>შეკვეთის გაფორმება | ცისფერი მთები</title>
+
+    <link href="{% static 'restaurant/css/bootstrap.min.css' %}"
+          rel="stylesheet">
+    <link href="{% static 'restaurant/css/style.css' %}"
+          rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container-fluid bg-dark py-3">
+    <div class="container">
+        <h2 class="text-primary mb-0">ცისფერი მთები</h2>
+    </div>
+</div>
+
+<div class="container py-5">
+
+    <h1 class="text-center mb-5">შეკვეთის გაფორმება</h1>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label">სახელი და გვარი</label>
+                    <input type="text"
+                           name="customer_name"
+                           class="form-control"
+                           required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">ტელეფონის ნომერი</label>
+                    <input type="tel"
+                           name="phone_number"
+                           class="form-control"
+                           required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">მისამართი</label>
+                    <input type="text"
+                           name="address"
+                           class="form-control"
+                           required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    შეკვეთის დადასტურება
+                </button>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
