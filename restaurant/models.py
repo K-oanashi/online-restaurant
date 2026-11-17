@@ -40,3 +40,34 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.dish.name} x {self.quantity}"
+
+
+
+class Cart(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        null=True, blank=True
+    )
+    guest_token = models.CharField(
+        max_length=100, unique=True,
+        null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=False)
+
+    def __str__(self):
+        if self.user:
+            return self.user.username
+        return f"Guest cart {self.id}"
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = ('cart', 'dish')
+
+    def __str__(self):
+        return f"{self.dish.name} x {self.quantity}"

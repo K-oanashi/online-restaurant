@@ -1,10 +1,27 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from .models import Category, Dish, Order, OrderItem
+from .models import Category, Dish, Order, OrderItem, Cart, CartItem
 from django.db import transaction
-from django.contrib.auth.forms import UserCreationForm
+import secrets
+from django.conf import settings
 
+def get_user_cart(request):
+    if request.user.is_authenticated:
+        cart, created = Cart.objects.get_or_create(
+            user=request.user,
+            status=False
+        )
+        return cart
+    guest_token = request.COOKIES.get('guest_cart')
+    if guest_token:
+        cart = Cart.objects.filter(
+            guest_token=guest_token,
+            status=False
+        ).first()
 
+        if cart:
+            return cart
+    return None
 
 def home(request):
     categories = Category.objects.all()
@@ -38,36 +55,60 @@ def home(request):
     })
 
 
+
+
 @require_POST
 def add_to_cart(request, dish_id):
     dish = get_object_or_404(Dish, id=dish_id)
+    cart = get_user_cart(request)
 
-    cart = request.session.get('cart', {})
+    if cart is None:
+        guest_token = secrets.token_urlsafe(32)
+        cart = Cart.objects.create(guest_token=guest_token)
+    else:
+        guest_token = None
 
-    dish_id = str(dish.id)
+    item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        dish=dish
+    )
 
-    cart[dish_id] = cart.get(dish_id, 0) + 1
+    if not created:
+        item.quantity += 1
+        item.save()
 
-    request.session['cart'] = cart
+    response = redirect('/#menu')
 
-    return redirect('/#menu')
+    if guest_token:
+        response.set_cookie(
+            'guest_cart',
+            guest_token,
+            max_age=2592000,
+            httponly=True,
+            samesite='Lax',
+            secure=not settings.DEBUG
+        )
+
+    return response
+
+
 
 
 def cart(request):
-    cart_data = request.session.get('cart', {})
+    user_cart = get_user_cart(request)
     cart_items = []
     total_price = 0
 
-    for dish_id, quantity in cart_data.items():
-        dish = Dish.objects.filter(id=dish_id).first()
+    if user_cart:
+        items = CartItem.objects.filter(cart=user_cart).select_related('dish')
 
-        if dish:
-            subtotal = dish.price * quantity
+        for item in items:
+            subtotal = item.dish.price * item.quantity
             total_price += subtotal
 
             cart_items.append({
-                'dish': dish,
-                'quantity': quantity,
+                'dish': item.dish,
+                'quantity': item.quantity,
                 'subtotal': subtotal,
             })
 
@@ -78,35 +119,52 @@ def cart(request):
 
 @require_POST
 def increase_quantity(request, dish_id):
-    cart = request.session.get('cart', {})
-    dish_id = str(dish_id)
+    user_cart = get_user_cart(request)
 
-    if dish_id in cart:
-        cart[dish_id] += 1
-        request.session['cart'] = cart
+    if user_cart:
+        item = CartItem.objects.filter(
+            cart=user_cart,
+            dish_id=dish_id
+        ).first()
+
+        if item:
+            item.quantity += 1
+            item.save()
 
     return redirect('cart')
+
 
 
 @require_POST
 def decrease_quantity(request, dish_id):
-    cart = request.session.get('cart', {})
-    dish_id = str(dish_id)
+    user_cart = get_user_cart(request)
 
-    if dish_id in cart:
-        if cart[dish_id] > 1:
-            cart[dish_id] -= 1
-        else:
-            del cart[dish_id]
+    if user_cart:
+        item = CartItem.objects.filter(
+            cart=user_cart,
+            dish_id=dish_id
+        ).first()
 
-        request.session['cart'] = cart
+        if item:
+            if item.quantity > 1:
+                item.quantity -= 1
+                item.save()
+            else:
+                item.delete()
 
     return redirect('cart')
 
 
+
 def checkout(request):
-    cart = request.session.get('cart', {})
-    if not cart:
+    user_cart = get_user_cart(request)
+
+    if not user_cart:
+        return redirect('cart')
+
+    items = CartItem.objects.filter(cart=user_cart).select_related('dish')
+
+    if not items.exists():
         return redirect('cart')
 
     if request.method == 'POST':
@@ -118,36 +176,32 @@ def checkout(request):
             return render(request, 'restaurant/checkout.html', {
                 'error': 'გთხოვთ შეავსოთ ყველა ველი'
             })
+
         total_price = 0
-        order_items = []
 
-        for dish_id, quantity in cart.items():
-            dish = get_object_or_404(Dish, id=dish_id)
-
-            if not isinstance(quantity, int) or quantity <= 0:
-                return redirect('cart')
-
-            subtotal = dish.price * quantity
-            total_price += subtotal
-            order_items.append((dish, quantity))
+        for item in items:
+            total_price += item.dish.price * item.quantity
 
         with transaction.atomic():
             order = Order.objects.create(
                 customer_name=customer_name,
                 phone_number=phone_number,
                 address=address,
-                total_price=total_price,
+                total_price=total_price
             )
 
-            for dish, quantity in order_items:
+            for item in items:
                 OrderItem.objects.create(
                     order=order,
-                    dish=dish,
-                    quantity=quantity,
-                    price=dish.price
+                    dish=item.dish,
+                    quantity=item.quantity,
+                    price=item.dish.price
                 )
-        request.session['cart'] = {}
+
+            items.delete()
+
         return redirect('order_success', order_id=order.id)
+
     return render(request, 'restaurant/checkout.html')
 
 def order_success(request, order_id):
@@ -157,15 +211,3 @@ def order_success(request, order_id):
         'order': order,
     })
 
-
-def register(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-            return redirect('login')
-    else:
-        form = UserCreationForm()
-
-    return render(request, 'restaurant/register.html', {'form': form})
