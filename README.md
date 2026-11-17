@@ -14,8 +14,10 @@ The website allows users to browse Georgian dishes, filter them by different cri
 - Increase, decrease, or remove items from the cart
 - Automatically calculate the total order price
 - Register, log in, and log out
+- Support shopping carts for both guests and registered users
+- Store shopping carts and cart items in PostgreSQL
 - Place orders through checkout
-- Store orders in PostgreSQL
+- Store orders and order items in PostgreSQL
 - Manage dishes and orders through Django Admin
 
 ## Technologies Used
@@ -24,6 +26,38 @@ The website allows users to browse Georgian dishes, filter them by different cri
 - **Database:** PostgreSQL
 - **Frontend:** HTML, CSS, Bootstrap, JavaScript
 - **Development Environment:** PyCharm
+- **Version Control:** Git, GitHub
+
+## Django Applications
+
+The project is organized into two main Django applications:
+
+### Restaurant Application
+
+The `restaurant` application handles:
+
+- Dish categories and menu
+- Dish filtering
+- Shopping carts and cart items
+- Quantity management
+- Checkout and order processing
+
+### Users Application
+
+The `users` application handles:
+
+- User registration
+- User login
+- User logout
+- Authentication using Django's built-in User model
+
+## Shopping Cart Implementation
+
+The shopping cart is implemented using Django's `Cart` and `CartItem` models, with data stored in PostgreSQL instead of Django sessions.
+
+- **Registered users:** Shopping carts are associated with their user accounts.
+- **Guest users:** Shopping carts are identified using a unique token stored in a browser cookie.
+- **Checkout:** Orders and order items are saved to PostgreSQL, and purchased items are removed from the cart.
 
 ## How to Run the Project
 
@@ -33,7 +67,7 @@ The website allows users to browse Georgian dishes, filter them by different cri
 
    `pip install -r requirements.txt`
 
-4. Set up the PostgreSQL database and configure the connection in `config/settings.py`.
+4. Create a PostgreSQL database and configure the database connection and required environment variables.
 5. Apply database migrations:
 
    `python manage.py migrate`
@@ -44,10 +78,10 @@ The website allows users to browse Georgian dishes, filter them by different cri
 
 7. Open `http://127.0.0.1:8000/` in your browser.
 
-**Note:** The PostgreSQL database and its existing records are not automatically included when cloning the repository.
+**Note:** The PostgreSQL database and its existing records are not automatically included when cloning the repository. Environment variables must also be configured locally.
 
 ## About the Project
 
-This project was created to practice Django backend development, database relationships, user authentication, session-based shopping carts, and order management.
+This project was created to practice Django backend development, PostgreSQL database relationships, user authentication, database-based shopping carts, and order management.
 
 The restaurant focuses on traditional Georgian cuisine and provides a simple interface for browsing and ordering dishes.
